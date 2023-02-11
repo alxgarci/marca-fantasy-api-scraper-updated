@@ -6,6 +6,7 @@ import shutil
 import sys
 from concurrent.futures import ThreadPoolExecutor
 import logging
+import numpy as np
 
 import requests
 
@@ -117,7 +118,7 @@ def to_player_json(player_id, payload):
 
 
 def format_player_stats(payload):
-    player_stats = [0 for _ in range(0, 38)]
+    player_stats = [np.nan for _ in range(0, 38)]
     for jornada in payload["playerStats"]:
         player_stats[jornada["weekNumber"] - 1] = jornada["totalPoints"]
     return player_stats

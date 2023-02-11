@@ -19,7 +19,7 @@ Se ha implementado multithreading (es 4 veces más rapido) y comandos varios par
 - Librería requests en python
 
 # Uso
-- Para instalar el paquete requests, podemos hacerlo con `pip install -r requirements.txt`
+- Para instalar el paquete requests y numpy (para los NaN), podemos hacerlo con `pip install -r requirements.txt`
 - El programa se puede ejecutar con `python fantasy_scraper.py` o `python3 fantasy_scraper.py` o `py fantasy_scraper.py` con los ajustes establecidos por defecto y se ejecutará mostrando por pantalla un progressBar de 0% a 100%. Ejemplo de ejecución para 1595 jugadores en API por defecto:
 <img src="https://github.com/alxgarci/marca-fantasy-api-scraper-updated/raw/master/img/ejecucion.gif"/>
 
