@@ -9,6 +9,7 @@ Se ha implementado multithreading (es 4 veces más rapido) y comandos varios par
 - [Funcionamiento](#funcionamiento)
 - [Referencias](#referencias)
 - [Implementaciones pendientes](#implementaciones-pendientes)
+- [Sugerencias y Errores](#sugerencias-y-errores)
 
 <!-- /MarkdownTOC -->
 
@@ -22,6 +23,11 @@ Se ha implementado multithreading (es 4 veces más rapido) y comandos varios par
 - El programa se puede ejecutar con `python fantasy_scraper.py` o `python3 fantasy_scraper.py` o `py fantasy_scraper.py` con los ajustes establecidos por defecto
 - Acepta algunos comandos al ejecutarlo, para más información `fantasy_scraper.py --help`
 ![Ejemplo comandos](img/example01.png)
+<div style="text-align: center;">
+<img src="https://github.com/alxgarci/marca-fantasy-api-scraper-updated/raw/master/img/example01.png"
+     alt="Ejemplo comandos"
+     height="200" />
+</div>
 
 # Funcionamiento
 - Se creará un log.txt que registrará cada operación del programa para solución de errores
@@ -33,3 +39,7 @@ Este es un proyecto modificado a partir del de [diegoparrilla](https://github.co
 
 # Implementaciones pendientes
 - Permitir al usuario elegir entre .json y .csv
+
+# Sugerencias y Errores
+- Para errores/sugerencias escribir una nueva entrada en [issues](https://github.com/alxgarci/marca-fantasy-api-scraper-updated/issues/new)
+- También revisaré los pull requests
