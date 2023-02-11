@@ -1,0 +1,6 @@
+# Gitignore personalizado
+.idea/
+data/
+players/
+log.txt
+start.bat
