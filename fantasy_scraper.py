@@ -15,6 +15,7 @@ PLAYERS_ENDPOINT = "https://api.laligafantasymarca.com/api/v3/player"
 LOG_FILE = "log.txt"
 PROGRESS_BAR = False
 TOTAL_JUGADORES = 1595
+TEAMS_TO_WRITE = dict()
 
 if os.path.isfile(LOG_FILE):
     os.remove(LOG_FILE)
@@ -58,8 +59,6 @@ else:
     PROGRESS_BAR = True
     logger = logging.getLogger(__name__)
 
-teams_to_write = dict()
-
 
 # Metodo muy util obtenido de:
 # https://stackoverflow.com/a/34325723
@@ -90,16 +89,15 @@ def get_formatted_time():
 
 
 def append_to_team_object(team_filename, content):
-    global teams_to_write
+    global TEAMS_TO_WRITE
     filename = RUTA_DATA + team_filename + ".json"
-    if filename not in teams_to_write.keys():
-        teams_to_write[filename] = [content]
+    if filename not in TEAMS_TO_WRITE.keys():
+        TEAMS_TO_WRITE[filename] = [content]
     else:
-        teams_to_write[filename].append(content)
+        TEAMS_TO_WRITE[filename].append(content)
 
 
 def write_player_json(filename_player, content):
-    # sub_folder = f"{content['team']['id']}_{content['team']['shortName']}/"
     directory = f"{RUTA_PLAYERS}{content['team']['id']}_{content['team']['shortName']}/"
     if not os.path.exists(directory):
         try:
@@ -116,7 +114,6 @@ def write_player_json(filename_player, content):
 def to_player_json(player_id, payload):
     player_filename = f"{player_id}_{payload['slug']}"
     write_player_json(player_filename, payload)
-    # print(f"[+] {get_formatted_time()} Jugador {player_id} guardado en {player_filename}")
 
 
 def format_player_stats(payload):
@@ -128,15 +125,7 @@ def format_player_stats(payload):
 
 def to_team_simple_json(player_id, payload):
     team_filename = f"{payload['team']['id']}_{payload['team']['shortName']}"
-    # player_stats = dict()
     if payload["playerStatus"] != "out_of_league":
-        # for jornada in payload["playerStats"]:
-        #     week_numbers.append(jornada["weekNumber"])
-        #     total_week_points.append(jornada["totalPoints"])
-        #     player_stats.update({
-        #         "weekNumber": week_numbers,
-        #         "totalPoints": total_week_points
-        #     })
         player_stats = format_player_stats(payload)
         player_simple_json = {
             "id": player_id,
@@ -160,8 +149,6 @@ def remove_files():
         shutil.rmtree(RUTA_DATA)
     if os.path.exists(RUTA_PLAYERS):
         shutil.rmtree(RUTA_PLAYERS)
-    # if os.path.isfile(LOG_FILE):
-    #     os.remove(LOG_FILE)
 
 
 def multithread_scrape_player_aux(player_index):
@@ -170,7 +157,7 @@ def multithread_scrape_player_aux(player_index):
     if response.status_code == 200:
         payload = response.json()
         try:
-            check_if_team = payload["team"]["id"]
+            _ = payload["team"]["id"]
             to_player_json(player_index, payload)
             to_team_simple_json(player_index, payload)
             logger.info(f"Jugador {player_index} obtenido correctamente")
@@ -202,10 +189,10 @@ def main():
         with ThreadPoolExecutor() as executor:
             executor.map(multithread_scrape_player_aux, range(52, TOTAL_JUGADORES))
 
-    for x in teams_to_write.keys():
+    for x in TEAMS_TO_WRITE.keys():
         logging.info(f"Escribiendo jugadores en {x}")
         with open(x, "w", encoding="utf-8") as f:
-            json.dump(teams_to_write[x], f, indent=4)
+            json.dump(TEAMS_TO_WRITE[x], f, indent=4)
     sys.exit()
 
 
