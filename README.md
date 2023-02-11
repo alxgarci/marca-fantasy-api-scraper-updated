@@ -22,9 +22,8 @@ Se ha implementado multithreading (es 4 veces más rapido) y comandos varios par
 - Para instalar el paquete requests, podemos hacerlo con `pip install -r requirements.txt`
 - El programa se puede ejecutar con `python fantasy_scraper.py` o `python3 fantasy_scraper.py` o `py fantasy_scraper.py` con los ajustes establecidos por defecto
 - Acepta algunos comandos al ejecutarlo, para más información `fantasy_scraper.py --help`
-![Ejemplo comandos](img/example01.png)
 <div style="text-align: center;">
-<img src="https://github.com/alxgarci/marca-fantasy-api-scraper-updated/raw/master/img/example01.png"
+<img src="https://github.com/alxgarci/marca-fantasy-api-scraper-updated/raw/master/img/ex01.png"
      alt="Ejemplo comandos"
      height="200" />
 </div>
