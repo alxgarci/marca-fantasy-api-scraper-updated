@@ -102,7 +102,11 @@ def write_player_json(filename_player, content):
     # sub_folder = f"{content['team']['id']}_{content['team']['shortName']}/"
     directory = f"{RUTA_PLAYERS}{content['team']['id']}_{content['team']['shortName']}/"
     if not os.path.exists(directory):
-        os.mkdir(directory)
+        try:
+            # Solucionar errores multithreading cuando dos hilos intentan crear un archivo simultaneamente
+            os.mkdir(directory)
+        except FileExistsError:
+            pass
 
     filename = f"{directory}{filename_player}.json"
     with open(filename, "w", encoding="utf-8") as f:
