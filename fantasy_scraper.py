@@ -14,51 +14,31 @@ RUTA_DATA = "data/"
 RUTA_PLAYERS = "players/"
 PLAYERS_ENDPOINT = "https://api.laligafantasymarca.com/api/v3/player"
 LOG_FILE = "log.txt"
-PROGRESS_BAR = False
 TOTAL_JUGADORES = 1595
+INDEX_INICIO_API = 52
 TEAMS_TO_WRITE = dict()
-
-if os.path.isfile(LOG_FILE):
-    os.remove(LOG_FILE)
 
 
 # Configuracion de argumentos por consola para mostrar INFO o PROGRESSBAR
 def check_totaljugadores_provided(value):
     ivalue = int(value)
     if not TOTAL_JUGADORES <= ivalue <= TOTAL_JUGADORES + 1000:
-        raise argparse.ArgumentTypeError("%s no es un numero valido de jugadores" % value)
+        raise argparse.ArgumentTypeError(f"{value} no es un numero valido de jugadores, --help para mas info")
     return ivalue
 
 
-parser = argparse.ArgumentParser(description=" Este programa usa multithread al llamar a la API y"
-                                             " guardar los jugadores,"
-                                             " puede consumir recursos pero lo convierte en mucho más eficiente."
-                                             " Se guardara siempre un log en " + LOG_FILE,
-                                 epilog="MarcaFantasy API Scraper de https://github.com/alxgarci")
-parser.add_argument("--no-consolelog", action="store_false", dest="consolelog",
-                    help="Mostrar progressBar en lugar de log en consola (default)")
-parser.add_argument("--consolelog", action="store_true",
-                    help="Mostrar log en consola en vez de progressBar")
-parser.add_argument("--totaljugadores", type=check_totaljugadores_provided,
-                    help=f"Seleccionar maximo de jugadores registrados en la API "
-                         f"(entre {TOTAL_JUGADORES} (default) y {TOTAL_JUGADORES + 1000})")
-parser.set_defaults(consolelog=False, totaljugadores=TOTAL_JUGADORES)
-args = parser.parse_args()
-
-# Configuracion del logging para guardar en log.txt o mostrar por consola en base a args
-logging.basicConfig(filename=LOG_FILE, format="[%(asctime)s.%(msecs)03d] %(levelname)s - %(message)s",
-                    datefmt="%H:%M:%S", level=logging.INFO)
-TOTAL_JUGADORES = args.totaljugadores
-if args.consolelog:
-    console = logging.StreamHandler()
-    formatter = logging.Formatter(fmt="[%(asctime)s.%(msecs)03d] [%(levelname)s] %(message)s", datefmt="%H:%M:%S")
-    console.setFormatter(formatter)
-    console.setLevel(logging.INFO)
-    logging.getLogger("").addHandler(console)
-    logger = logging.getLogger(__name__)
-else:
-    PROGRESS_BAR = True
-    logger = logging.getLogger(__name__)
+# Definir parser y argumentos para los argumentos introducidos por consola
+def set_parser(p):
+    p.add_argument("--no-consolelog", action="store_false", dest="consolelog",
+                   help="Mostrar progressBar en lugar de log en consola (default)")
+    p.add_argument("--consolelog", action="store_true",
+                   help="Mostrar log en consola en vez de progressBar")
+    p.add_argument("--totaljugadores", type=check_totaljugadores_provided,
+                   help=f"Seleccionar maximo de jugadores registrados en la API "
+                        f"(entre {TOTAL_JUGADORES} (default) y {TOTAL_JUGADORES + 1000})")
+    p.set_defaults(consolelog=False, totaljugadores=TOTAL_JUGADORES)
+    # args = p.parse_args()
+    return p.parse_args()
 
 
 # Metodo muy util obtenido de:
@@ -83,10 +63,6 @@ def print_progress_bar(iteration, total, prefix='', suffix='', decimals=1, lengt
     # Print New Line on Complete
     if iteration == total:
         print()
-
-
-def get_formatted_time():
-    return "[" + datetime.datetime.now().strftime("%H:%M:%S") + "]"
 
 
 def append_to_team_object(team_filename, content):
@@ -118,6 +94,7 @@ def to_player_json(player_id, payload):
 
 
 def format_player_stats(payload):
+    # Jornada no disputada = NaN
     player_stats = [np.nan for _ in range(0, 38)]
     for jornada in payload["playerStats"]:
         player_stats[jornada["weekNumber"] - 1] = jornada["totalPoints"]
@@ -153,7 +130,6 @@ def remove_files():
 
 
 def multithread_scrape_player_aux(player_index):
-    # for player_index in range(52, 1400):
     response = requests.get(f"{PLAYERS_ENDPOINT}/{player_index}")
     if response.status_code == 200:
         payload = response.json()
@@ -169,7 +145,7 @@ def multithread_scrape_player_aux(player_index):
         logger.error(f"Jugador {player_index} [NO ENCONTRADO]")
 
 
-def main():
+def main(p_bar, total_jugadores):
     remove_files()
     if not os.path.exists(RUTA_DATA):
         os.mkdir(RUTA_DATA)
@@ -178,17 +154,17 @@ def main():
 
     logging.info(f"API endpoint {PLAYERS_ENDPOINT}")
 
-    if PROGRESS_BAR:
-        print_progress_bar(0, TOTAL_JUGADORES, prefix='Progreso:', suffix='Jugadores obtenidos', length=70)
-        counter = 52
+    if p_bar:
+        print_progress_bar(0, total_jugadores, prefix='Progreso:', suffix='Jugadores obtenidos', length=70)
+        counter = INDEX_INICIO_API
         with ThreadPoolExecutor() as executor:
-            for _ in executor.map(multithread_scrape_player_aux, range(52, TOTAL_JUGADORES)):
+            for _ in executor.map(multithread_scrape_player_aux, range(INDEX_INICIO_API, total_jugadores)):
                 counter = counter + 1
-                print_progress_bar(counter, TOTAL_JUGADORES, prefix='Progreso:', suffix='Jugadores obtenidos',
+                print_progress_bar(counter, total_jugadores, prefix='Progreso:', suffix='Jugadores obtenidos',
                                    length=70)
     else:
         with ThreadPoolExecutor() as executor:
-            executor.map(multithread_scrape_player_aux, range(52, TOTAL_JUGADORES))
+            executor.map(multithread_scrape_player_aux, range(INDEX_INICIO_API, total_jugadores))
 
     for x in TEAMS_TO_WRITE.keys():
         logging.info(f"Escribiendo jugadores en {x}")
@@ -198,4 +174,32 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    # Eliminar anterior log
+    if os.path.isfile(LOG_FILE):
+        os.remove(LOG_FILE)
+
+    # Configuracion del logging para guardar en log.txt o mostrar por consola en base a args
+    logging.basicConfig(filename=LOG_FILE, format="[%(asctime)s.%(msecs)03d] %(levelname)s - %(message)s",
+                        datefmt="%H:%M:%S", level=logging.INFO)
+    parser = argparse.ArgumentParser(description=" Este programa usa multithread al llamar a la API y"
+                                                 " guardar los jugadores,"
+                                                 " puede consumir recursos pero lo convierte en mucho más eficiente."
+                                                 " Se guardara siempre un log en " + LOG_FILE,
+                                     epilog="MarcaFantasy API Scraper de https://github.com/alxgarci")
+
+    # Obteniendo args pasados por consola y estableciendo variables
+    args = set_parser(parser)
+    tot_jugadores = args.totaljugadores
+    progress_bar = False
+    if args.consolelog:
+        console = logging.StreamHandler()
+        formatter = logging.Formatter(fmt="[%(asctime)s.%(msecs)03d] [%(levelname)s] %(message)s", datefmt="%H:%M:%S")
+        console.setFormatter(formatter)
+        console.setLevel(logging.INFO)
+        logging.getLogger("").addHandler(console)
+        logger = logging.getLogger(__name__)
+    else:
+        progress_bar = True
+        logger = logging.getLogger(__name__)
+
+    main(progress_bar, tot_jugadores)
