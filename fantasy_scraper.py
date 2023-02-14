@@ -12,11 +12,14 @@ import requests
 
 RUTA_DATA = "data/"
 RUTA_PLAYERS = "players/"
+RUTA_MARKET_VALUES = "market_values/"
+RUTA_MARKET_VALUES_JSON = RUTA_MARKET_VALUES + "values.json"
 PLAYERS_ENDPOINT = "https://api.laligafantasymarca.com/api/v3/player"
 LOG_FILE = "log.txt"
 TOTAL_JUGADORES = 1595
 INDEX_INICIO_API = 52
 TEAMS_TO_WRITE = dict()
+MARKET_VALUES_DICT = dict()
 
 
 # Configuracion de argumentos por consola para mostrar INFO o PROGRESSBAR
@@ -129,6 +132,34 @@ def remove_files():
         shutil.rmtree(RUTA_PLAYERS)
 
 
+def read_market_values_historial_json():
+    global MARKET_VALUES_DICT
+    if os.path.exists(RUTA_MARKET_VALUES_JSON):
+        with open(RUTA_MARKET_VALUES_JSON, encoding="utf-8") as f:
+            MARKET_VALUES_DICT = json.loads(f.read())
+        logging.info(MARKET_VALUES_DICT)
+
+
+def to_market_values_historial_json(player_index, mkt_value):
+    global MARKET_VALUES_DICT
+    p_index = str(player_index)
+    date = datetime.datetime.now().strftime("%d/%m/%Y")
+    logging.info(f"p_index {p_index} - fecha: {date} = marketValue: {mkt_value}")
+
+    # Escribir valor por primera vez
+    if p_index not in MARKET_VALUES_DICT.keys():
+        MARKET_VALUES_DICT[p_index] = {
+            date: mkt_value
+        }
+    else:
+        # Escribir si no se ha guardado ya un valor de marketValue en el dia actual
+        if date not in MARKET_VALUES_DICT[p_index].keys():
+            MARKET_VALUES_DICT[p_index].update({
+                date: mkt_value
+            })
+            logging.info(MARKET_VALUES_DICT[p_index])
+
+
 def multithread_scrape_player_aux(player_index):
     response = requests.get(f"{PLAYERS_ENDPOINT}/{player_index}")
     if response.status_code == 200:
@@ -136,6 +167,7 @@ def multithread_scrape_player_aux(player_index):
         try:
             _ = payload["team"]["id"]
             to_player_json(player_index, payload)
+            to_market_values_historial_json(player_index, payload["marketValue"])
             to_team_simple_json(player_index, payload)
             logger.info(f"Jugador {player_index} obtenido correctamente")
         except KeyError:
@@ -151,6 +183,11 @@ def main(p_bar, total_jugadores):
         os.mkdir(RUTA_DATA)
     if not os.path.exists(RUTA_PLAYERS):
         os.mkdir(RUTA_PLAYERS)
+    if not os.path.exists(RUTA_MARKET_VALUES):
+        os.mkdir(RUTA_MARKET_VALUES)
+
+    logging.info(f"Leyendo MARKET_VALUES a dict() desde {RUTA_MARKET_VALUES_JSON}")
+    read_market_values_historial_json()
 
     logging.info(f"API endpoint {PLAYERS_ENDPOINT}")
 
@@ -170,22 +207,27 @@ def main(p_bar, total_jugadores):
         logging.info(f"Escribiendo jugadores en {x}")
         with open(x, "w", encoding="utf-8") as f:
             json.dump(TEAMS_TO_WRITE[x], f, indent=4)
+
+    with open(RUTA_MARKET_VALUES_JSON, "w", encoding="utf-8") as f:
+        logging.info(f"Escribiendo MARKET_VALUES_DICT en {RUTA_MARKET_VALUES_JSON}")
+        json.dump(MARKET_VALUES_DICT, f, indent=4)
+
     sys.exit()
 
 
 if __name__ == '__main__':
-    # Eliminar anterior log
-    if os.path.isfile(LOG_FILE):
-        os.remove(LOG_FILE)
+    # # Eliminar anterior log
+    # if os.path.isfile(LOG_FILE):
+    #     os.remove(LOG_FILE)
 
     # Configuracion del logging para guardar en log.txt o mostrar por consola en base a args
     logging.basicConfig(filename=LOG_FILE, format="[%(asctime)s.%(msecs)03d] %(levelname)s - %(message)s",
-                        datefmt="%H:%M:%S", level=logging.INFO)
-    parser = argparse.ArgumentParser(description=" Este programa usa multithread al llamar a la API y"
-                                                 " guardar los jugadores,"
-                                                 " puede consumir recursos pero lo convierte en mucho más eficiente."
-                                                 " Se guardara siempre un log en " + LOG_FILE,
-                                     epilog="MarcaFantasy API Scraper de https://github.com/alxgarci")
+                        datefmt="%H:%M:%S", level=logging.INFO, filemode="w")
+
+    description = "Este programa usa multithread al llamar a la API y guardar los jugadores en .JSON, " \
+                  "lo convierte en más eficiente. Se guardara siempre un log en " + LOG_FILE
+    epilog = "MarcaFantasy API Scraper de https://github.com/alxgarci"
+    parser = argparse.ArgumentParser(description=description, epilog=epilog)
 
     # Obteniendo args pasados por consola y estableciendo variables
     args = set_parser(parser)
