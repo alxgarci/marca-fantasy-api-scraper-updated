@@ -34,6 +34,7 @@ Se ha implementado multithreading (es 4 veces más rapido) y comandos varios par
 - Se creará un log.txt que registrará cada operación del programa para solución de errores
 - Se almacena el .json de cada jugador en `players/IDEQUIPO_NOMBRECORTO/IDJUGADOR_NOMBRECORTO.json`
 - Se crea un .json separado por cada equipo con sus jugadores y que guarda lo mismo que el jugadores pero sin estadisticas detalladas (minutos jugados,...), sólo con los puntos de cada jornada en `data/IDEQUIPO_NOMBRECORTO.json`
+- **(NUEVO)** Se crea un .json en `market_values/values.json` con los precios obtenidos (por fecha) relacionados con el ID de cada jugador. En cada ejecución se obtiene el valor de mercado, si existe una entrada para ese día se omite, si no hay entrada para ese día se guarda el precio con la fecha. Para poder obtener un historial de valores de mercado.
 
 # Referencias
 Este es un proyecto modificado a partir del de [diegoparrilla](https://github.com/diegoparrilla/marca-fantasy-scraper), sin su proyecto no hubiese sabido ni por donde empezar, y simplemente lo modifico ya que he visto que había dejado de darle soporte

@@ -245,3 +245,11 @@ if __name__ == '__main__':
         logger = logging.getLogger(__name__)
 
     main(progress_bar, tot_jugadores)
+else:
+    # Lo que se ejecuta si el programa se importa desde otro script
+    logging.basicConfig(filename=LOG_FILE, format="[%(asctime)s.%(msecs)03d] %(levelname)s - %(message)s",
+                        datefmt="%H:%M:%S", level=logging.INFO, filemode="w")
+    # Si se importa desde otro script, para actualizar los .JSON incluir en el script las lineas:
+    # import fantasy_scraper
+    # fantasy_scraper.main(True, fantasy_scraper.TOTAL_JUGADORES)
+    logger = logging.getLogger(__name__)
