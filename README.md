@@ -17,30 +17,52 @@ Se ha implementado multithreading (es 4 veces más rapido) y comandos varios par
 # Requisitos
 - Python v3 o más
 - Librería requests en python
+- Librería numpy en python
 
 # Uso
-- Para instalar el paquete requests y numpy (para los NaN), podemos hacerlo con `pip install -r requirements.txt`
-- El programa se puede ejecutar con `python fantasy_scraper.py` o `python3 fantasy_scraper.py` o `py fantasy_scraper.py` con los ajustes establecidos por defecto y se ejecutará mostrando por pantalla un progressBar de 0% a 100%. Ejemplo de ejecución para 1595 jugadores en API por defecto:
-<img src="https://github.com/alxgarci/marca-fantasy-api-scraper-updated/raw/master/img/ejecucion.gif"/>
+- Descarga la última versión totalmente funcional y probadas y el requirements.txt desde [releases/latest](https://github.com/alxgarci/marca-fantasy-api-scraper-updated/releases/latest)
+- Para instalar el paquete requests y numpy (para los NaN), podemos hacerlo con 
+```
+pip install -r requirements.txt
+```
 
-- Acepta algunos comandos al ejecutarlo, para más información `fantasy_scraper.py --help`
+- El programa se puede ejecutar con alguno de los siguientes comandos (dependiendo de tu instalación de python):
+```
+python fantasy_scraper.py
+```
+```
+python3 fantasy_scraper.py
+```
+```
+py fantasy_scraper.py
+```
+
+- Con los ajustes establecidos por defecto y se ejecutará mostrando por pantalla un progressBar de 0% a 100%. Ejemplo de ejecución para 1595 jugadores en API por defecto:
+
+<img src="https://github.com/alxgarci/marca-fantasy-api-scraper-updated/raw/master/img/ejecucion.gif" alt="ejemplo ejecucion"/>
+
+
+- Acepta algunos comandos al ejecutarlo, para más información
+```
+fantasy_scraper.py --help
+```
 <div style="text-align: center;">
 <img src="https://github.com/alxgarci/marca-fantasy-api-scraper-updated/raw/master/img/ex01.png"
-     alt="Ejemplo comandos"
-     height="200" />
+     alt="Ejemplo comandos"/>
 </div>
 
 # Funcionamiento
 - Se creará un log.txt que registrará cada operación del programa para solución de errores
 - Se almacena el .json de cada jugador en `players/IDEQUIPO_NOMBRECORTO/IDJUGADOR_NOMBRECORTO.json`
 - Se crea un .json separado por cada equipo con sus jugadores y que guarda lo mismo que el jugadores pero sin estadisticas detalladas (minutos jugados,...), sólo con los puntos de cada jornada en `data/IDEQUIPO_NOMBRECORTO.json`
-- **(NUEVO)** Se crea un .json en `market_values/values.json` con los precios obtenidos (por fecha) relacionados con el ID de cada jugador. En cada ejecución se obtiene el valor de mercado, si existe una entrada para ese día se omite, si no hay entrada para ese día se guarda el precio con la fecha. Para poder obtener un historial de valores de mercado.
+- **(NUEVO)** Se crea un .json en `market_values/values.json` con el historial de precios de mercado (por fecha) relacionados con el ID de cada jugador obtenidos del endpoint de market-values.
+- Se puede importar y usar como librería de otro script, para más información consultar comentarios del final del fichero _fantasy_scraper.py_
 
 # Referencias
-Este es un proyecto modificado a partir del de [diegoparrilla](https://github.com/diegoparrilla/marca-fantasy-scraper), sin su proyecto no hubiese sabido ni por donde empezar, y simplemente lo modifico ya que he visto que había dejado de darle soporte
+Este es un proyecto basado en el de [@diegoparrilla](https://github.com/diegoparrilla/marca-fantasy-scraper), de donde he sacado el API endpoint y parte de la estructura de los JSON.
 
 # Implementaciones pendientes
-- Permitir al usuario elegir entre .json y .csv
+Se pueden consultar en [issues/label/mejora](https://github.com/alxgarci/marca-fantasy-api-scraper-updated/labels/mejora)
 
 # Sugerencias y Errores
 - Para errores/sugerencias escribir una nueva entrada en [issues](https://github.com/alxgarci/marca-fantasy-api-scraper-updated/issues/new)
