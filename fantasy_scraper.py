@@ -4,6 +4,7 @@ import json
 import os.path
 import shutil
 import sys
+import time
 from concurrent.futures import ThreadPoolExecutor
 import logging
 import numpy as np
@@ -15,6 +16,7 @@ RUTA_PLAYERS = "players/"
 RUTA_MARKET_VALUES = "market_values/"
 RUTA_MARKET_VALUES_JSON = RUTA_MARKET_VALUES + "values.json"
 PLAYERS_ENDPOINT = "https://api.laligafantasymarca.com/api/v3/player"
+MARKET_VALUE_ENDPOINT = "https://api.laligafantasymarca.com/api/v3/player/{0}/market-value"
 LOG_FILE = "log.txt"
 TOTAL_JUGADORES = 1595
 INDEX_INICIO_API = 52
@@ -84,6 +86,7 @@ def write_player_json(filename_player, content):
             # Solucionar errores multithreading cuando dos hilos intentan crear un archivo simultaneamente
             os.mkdir(directory)
         except FileExistsError:
+            logging.error(f"Error creando {directory} (Lo mas seguro que ya haya sido creado)")
             pass
 
     filename = f"{directory}{filename_player}.json"
@@ -106,22 +109,22 @@ def format_player_stats(payload):
 
 def to_team_simple_json(player_id, payload):
     team_filename = f"{payload['team']['id']}_{payload['team']['shortName']}"
-    if payload["playerStatus"] != "out_of_league":
-        player_stats = format_player_stats(payload)
-        player_simple_json = {
-            "id": player_id,
-            "status": payload["playerStatus"],
-            "slug": payload["slug"],
-            "position": payload['position'],
-            "marketValue": payload["marketValue"],
-            "playerStats": player_stats,
-            "points": payload["points"],
-            "averagePoints": payload["averagePoints"]
-        }
-        append_to_team_object(team_filename, player_simple_json)
-
-    else:
-        logger.error(f"Jugador {player_id} [out_of_league]")
+    # if payload["playerStatus"] != "out_of_league":
+    player_stats = format_player_stats(payload)
+    player_simple_json = {
+        "id": player_id,
+        "status": payload["playerStatus"],
+        "slug": payload["slug"],
+        "position": payload['position'],
+        "marketValue": payload["marketValue"],
+        "playerStats": player_stats,
+        "points": payload["points"],
+        "averagePoints": payload["averagePoints"]
+    }
+    append_to_team_object(team_filename, player_simple_json)
+    #
+    # else:
+    #     logger.error(f"Jugador {player_id} [out_of_league]")
 
 
 def remove_files():
@@ -132,47 +135,42 @@ def remove_files():
         shutil.rmtree(RUTA_PLAYERS)
 
 
-def read_market_values_historial_json():
-    global MARKET_VALUES_DICT
-    if os.path.exists(RUTA_MARKET_VALUES_JSON):
-        with open(RUTA_MARKET_VALUES_JSON, encoding="utf-8") as f:
-            MARKET_VALUES_DICT = json.loads(f.read())
-        logging.info(MARKET_VALUES_DICT)
-
-
-def to_market_values_historial_json(player_index, mkt_value):
+def to_market_values_historial_json(player_index, mkt_value_payload):
     global MARKET_VALUES_DICT
     p_index = str(player_index)
-    date = datetime.datetime.now().strftime("%d/%m/%Y")
-    logging.info(f"p_index {p_index} - fecha: {date} = marketValue: {mkt_value}")
+    logging.info(f"Escribiendo historial market-value del jugador {p_index} ({len(mkt_value_payload)} values)")
+    for x in mkt_value_payload:
+        dt = datetime.datetime.fromisoformat(x["date"])
+        dt = dt.strftime("%d/%m/%Y")
 
-    # Escribir valor por primera vez
-    if p_index not in MARKET_VALUES_DICT.keys():
-        MARKET_VALUES_DICT[p_index] = {
-            date: mkt_value
-        }
-    else:
-        # Escribir si no se ha guardado ya un valor de marketValue en el dia actual
-        if date not in MARKET_VALUES_DICT[p_index].keys():
+        if p_index not in MARKET_VALUES_DICT.keys():
+            MARKET_VALUES_DICT[p_index] = {
+                dt: x["marketValue"]
+            }
+        else:
             MARKET_VALUES_DICT[p_index].update({
-                date: mkt_value
+                dt: x["marketValue"]
             })
-            logging.info(MARKET_VALUES_DICT[p_index])
 
 
 def multithread_scrape_player_aux(player_index):
     response = requests.get(f"{PLAYERS_ENDPOINT}/{player_index}")
     if response.status_code == 200:
         payload = response.json()
-        try:
-            _ = payload["team"]["id"]
-            to_player_json(player_index, payload)
-            to_market_values_historial_json(player_index, payload["marketValue"])
-            to_team_simple_json(player_index, payload)
-            logger.info(f"Jugador {player_index} obtenido correctamente")
-        except KeyError:
-            # Es un jugador que no esta en 1 DIV, de equipo que ha descendido pero no se ha borrado
-            logger.error(f"Jugador {player_index} [SIN EQUIPO]")
+        if payload["playerStatus"] != "out_of_league":
+            try:
+                _ = payload["team"]["id"]
+                market_value_response = requests.get(MARKET_VALUE_ENDPOINT.format(player_index))
+                market_value_payload = market_value_response.json()
+                to_player_json(player_index, payload)
+                to_market_values_historial_json(player_index, market_value_payload)
+                to_team_simple_json(player_index, payload)
+                logger.info(f"Jugador {player_index} obtenido correctamente")
+            except KeyError:
+                # Es un jugador que no esta en 1 DIV, de equipo que ha descendido pero no se ha borrado
+                logger.error(f"Jugador {player_index} [SIN EQUIPO]")
+        else:
+            logger.error(f"Jugador {player_index} [out_of_league]")
     elif response.status_code == 404:
         logger.error(f"Jugador {player_index} [NO ENCONTRADO]")
 
@@ -186,11 +184,9 @@ def main(p_bar, total_jugadores):
     if not os.path.exists(RUTA_MARKET_VALUES):
         os.mkdir(RUTA_MARKET_VALUES)
 
-    logging.info(f"Leyendo MARKET_VALUES a dict() desde {RUTA_MARKET_VALUES_JSON}")
-    read_market_values_historial_json()
-
     logging.info(f"API endpoint {PLAYERS_ENDPOINT}")
-
+    logging.info(f"API endpoint market-values {MARKET_VALUE_ENDPOINT.format('ID_JUGADOR')}")
+    start_time = time.time()
     if p_bar:
         print_progress_bar(0, total_jugadores, prefix='Progreso:', suffix='Jugadores obtenidos', length=70)
         counter = INDEX_INICIO_API
@@ -211,6 +207,10 @@ def main(p_bar, total_jugadores):
     with open(RUTA_MARKET_VALUES_JSON, "w", encoding="utf-8") as f:
         logging.info(f"Escribiendo MARKET_VALUES_DICT en {RUTA_MARKET_VALUES_JSON}")
         json.dump(MARKET_VALUES_DICT, f, indent=4)
+
+    end_time = time.time()
+    exec_time = end_time - start_time
+    logging.info(f"Tiempo de ejecucion total MM:SS {time.strftime('%M:%S', time.gmtime(exec_time))}")
 
     sys.exit()
 
