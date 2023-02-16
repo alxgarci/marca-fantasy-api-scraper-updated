@@ -13,15 +13,13 @@ import requests
 
 RUTA_DATA = "data/"
 RUTA_PLAYERS = "players/"
-RUTA_MARKET_VALUES = "market_values/"
-RUTA_MARKET_VALUES_JSON = RUTA_MARKET_VALUES + "values.json"
 PLAYERS_ENDPOINT = "https://api.laligafantasymarca.com/api/v3/player"
 MARKET_VALUE_ENDPOINT = "https://api.laligafantasymarca.com/api/v3/player/{0}/market-value"
 LOG_FILE = "log.txt"
 TOTAL_JUGADORES = 1595
 INDEX_INICIO_API = 52
 TEAMS_TO_WRITE = dict()
-MARKET_VALUES_DICT = dict()
+REQUEST_TIMEOUT = 30
 
 
 # Configuracion de argumentos por consola para mostrar INFO o PROGRESSBAR
@@ -42,7 +40,6 @@ def set_parser(p):
                    help=f"Seleccionar maximo de jugadores registrados en la API "
                         f"(entre {TOTAL_JUGADORES} (default) y {TOTAL_JUGADORES + 1000})")
     p.set_defaults(consolelog=False, totaljugadores=TOTAL_JUGADORES)
-    # args = p.parse_args()
     return p.parse_args()
 
 
@@ -83,10 +80,10 @@ def write_player_json(filename_player, content):
     directory = f"{RUTA_PLAYERS}{content['team']['id']}_{content['team']['shortName']}/"
     if not os.path.exists(directory):
         try:
-            # Solucionar errores multithreading cuando dos hilos intentan crear un archivo simultaneamente
+            # Solucionar errores multithreading cuando dos hilos intentan crear un directorio simultaneamente
             os.mkdir(directory)
         except FileExistsError:
-            logging.error(f"Error creando {directory} (Lo mas seguro que ya haya sido creado)")
+            logging.error(f"Error creando {directory} (Ya se ha creado)")
             pass
 
     filename = f"{directory}{filename_player}.json"
@@ -94,8 +91,12 @@ def write_player_json(filename_player, content):
         json.dump(content, f, indent=4)
 
 
-def to_player_json(player_id, payload):
+def to_player_json(player_id, payload, mkt_value_payload):
     player_filename = f"{player_id}_{payload['slug']}"
+    mkt_value_formatted = format_market_value(player_id, mkt_value_payload)
+    payload["marketValue"] = mkt_value_formatted
+    # Eliminar keys que no nos serviran en principio de nada
+    payload = remove_from_dict(payload, "images")
     write_player_json(player_filename, payload)
 
 
@@ -109,7 +110,6 @@ def format_player_stats(payload):
 
 def to_team_simple_json(player_id, payload):
     team_filename = f"{payload['team']['id']}_{payload['team']['shortName']}"
-    # if payload["playerStatus"] != "out_of_league":
     player_stats = format_player_stats(payload)
     player_simple_json = {
         "id": player_id,
@@ -122,9 +122,6 @@ def to_team_simple_json(player_id, payload):
         "averagePoints": payload["averagePoints"]
     }
     append_to_team_object(team_filename, player_simple_json)
-    #
-    # else:
-    #     logger.error(f"Jugador {player_id} [out_of_league]")
 
 
 def remove_files():
@@ -135,37 +132,41 @@ def remove_files():
         shutil.rmtree(RUTA_PLAYERS)
 
 
-def to_market_values_historial_json(player_index, mkt_value_payload):
-    global MARKET_VALUES_DICT
+def format_market_value(player_index, mkt_value_payload):
     p_index = str(player_index)
     logging.info(f"Escribiendo historial market-value del jugador {p_index} ({len(mkt_value_payload)} values)")
+    mkt_value_dict = dict()
     for x in mkt_value_payload:
         dt = datetime.datetime.fromisoformat(x["date"])
         dt = dt.strftime("%d/%m/%Y")
 
-        if p_index not in MARKET_VALUES_DICT.keys():
-            MARKET_VALUES_DICT[p_index] = {
-                dt: x["marketValue"]
-            }
-        else:
-            MARKET_VALUES_DICT[p_index].update({
+        # Si el diccionario esta vacio devuelve False
+        if bool(mkt_value_dict):
+            mkt_value_dict.update({
                 dt: x["marketValue"]
             })
+        else:
+            mkt_value_dict = {
+                dt: x["marketValue"]
+            }
+    return mkt_value_dict
 
 
 def multithread_scrape_player_aux(player_index):
-    response = requests.get(f"{PLAYERS_ENDPOINT}/{player_index}")
+    response = requests.get(f"{PLAYERS_ENDPOINT}/{player_index}", timeout=REQUEST_TIMEOUT)
     if response.status_code == 200:
         payload = response.json()
         if payload["playerStatus"] != "out_of_league":
             try:
                 _ = payload["team"]["id"]
-                market_value_response = requests.get(MARKET_VALUE_ENDPOINT.format(player_index))
+                market_value_response = requests.get(MARKET_VALUE_ENDPOINT.format(player_index),
+                                                     timeout=REQUEST_TIMEOUT)
                 market_value_payload = market_value_response.json()
-                to_player_json(player_index, payload)
-                to_market_values_historial_json(player_index, market_value_payload)
+
+                to_player_json(player_index, payload, market_value_payload)
                 to_team_simple_json(player_index, payload)
-                logger.info(f"Jugador {player_index} obtenido correctamente")
+
+                logger.info(f"Jugador {player_index} almacenado correctamente")
             except KeyError:
                 # Es un jugador que no esta en 1 DIV, de equipo que ha descendido pero no se ha borrado
                 logger.error(f"Jugador {player_index} [SIN EQUIPO]")
@@ -175,51 +176,55 @@ def multithread_scrape_player_aux(player_index):
         logger.error(f"Jugador {player_index} [NO ENCONTRADO]")
 
 
+def remove_from_dict(d, key):
+    r = dict(d)
+    try:
+        del r[key]
+    except NameError:
+        logging.error(f"Key a eliminar [{key}] no encontrada en payload del player_id {d['id']}")
+
+    return r
+
+
 def main(p_bar, total_jugadores):
-    remove_files()
-    if not os.path.exists(RUTA_DATA):
-        os.mkdir(RUTA_DATA)
-    if not os.path.exists(RUTA_PLAYERS):
-        os.mkdir(RUTA_PLAYERS)
-    if not os.path.exists(RUTA_MARKET_VALUES):
-        os.mkdir(RUTA_MARKET_VALUES)
+    try:
+        remove_files()
+        if not os.path.exists(RUTA_DATA):
+            os.mkdir(RUTA_DATA)
+        if not os.path.exists(RUTA_PLAYERS):
+            os.mkdir(RUTA_PLAYERS)
 
-    logging.info(f"API endpoint {PLAYERS_ENDPOINT}")
-    logging.info(f"API endpoint market-values {MARKET_VALUE_ENDPOINT.format('ID_JUGADOR')}")
-    start_time = time.time()
-    if p_bar:
-        print_progress_bar(0, total_jugadores, prefix='Progreso:', suffix='Jugadores obtenidos', length=70)
-        counter = INDEX_INICIO_API
-        with ThreadPoolExecutor() as executor:
-            for _ in executor.map(multithread_scrape_player_aux, range(INDEX_INICIO_API, total_jugadores)):
-                counter = counter + 1
-                print_progress_bar(counter, total_jugadores, prefix='Progreso:', suffix='Jugadores obtenidos',
-                                   length=70)
-    else:
-        with ThreadPoolExecutor() as executor:
-            executor.map(multithread_scrape_player_aux, range(INDEX_INICIO_API, total_jugadores))
+        logging.info(f"API endpoint {PLAYERS_ENDPOINT}")
+        logging.info(f"API endpoint market-values {MARKET_VALUE_ENDPOINT.format('ID_JUGADOR')}")
+        start_time = time.time()
+        if p_bar:
+            print_progress_bar(0, total_jugadores, prefix='Progreso:', suffix='Jugadores obtenidos', length=70)
+            counter = INDEX_INICIO_API
+            with ThreadPoolExecutor() as executor:
+                for _ in executor.map(multithread_scrape_player_aux, range(INDEX_INICIO_API, total_jugadores)):
+                    counter = counter + 1
+                    print_progress_bar(counter, total_jugadores, prefix='Progreso:', suffix='Jugadores obtenidos',
+                                       length=70)
+        else:
+            with ThreadPoolExecutor() as executor:
+                executor.map(multithread_scrape_player_aux, range(INDEX_INICIO_API, total_jugadores))
 
-    for x in TEAMS_TO_WRITE.keys():
-        logging.info(f"Escribiendo jugadores en {x}")
-        with open(x, "w", encoding="utf-8") as f:
-            json.dump(TEAMS_TO_WRITE[x], f, indent=4)
+        for x in TEAMS_TO_WRITE.keys():
+            logging.info(f"Escribiendo jugadores en {x}")
+            with open(x, "w", encoding="utf-8") as f:
+                json.dump(TEAMS_TO_WRITE[x], f, indent=4)
 
-    with open(RUTA_MARKET_VALUES_JSON, "w", encoding="utf-8") as f:
-        logging.info(f"Escribiendo MARKET_VALUES_DICT en {RUTA_MARKET_VALUES_JSON}")
-        json.dump(MARKET_VALUES_DICT, f, indent=4)
+        end_time = time.time()
+        logging.info(f"Tiempo de ejecucion total (MM:SS) {time.strftime('%M:%S', time.gmtime(end_time - start_time))}")
 
-    end_time = time.time()
-    exec_time = end_time - start_time
-    logging.info(f"Tiempo de ejecucion total MM:SS {time.strftime('%M:%S', time.gmtime(exec_time))}")
-
+    # Escribir en log.txt cualquier excepcion que se produzca no controlada anteriormente
+    except Exception as e:
+        logging.critical(e, exc_info=True)
+        sys.exit()
     sys.exit()
 
 
 if __name__ == '__main__':
-    # # Eliminar anterior log
-    # if os.path.isfile(LOG_FILE):
-    #     os.remove(LOG_FILE)
-
     # Configuracion del logging para guardar en log.txt o mostrar por consola en base a args
     logging.basicConfig(filename=LOG_FILE, format="[%(asctime)s.%(msecs)03d] %(levelname)s - %(message)s",
                         datefmt="%H:%M:%S", level=logging.INFO, filemode="w")
@@ -249,7 +254,4 @@ else:
     # Lo que se ejecuta si el programa se importa desde otro script
     logging.basicConfig(filename=LOG_FILE, format="[%(asctime)s.%(msecs)03d] %(levelname)s - %(message)s",
                         datefmt="%H:%M:%S", level=logging.INFO, filemode="w")
-    # Si se importa desde otro script, para actualizar los .JSON incluir en el script las lineas:
-    # import fantasy_scraper
-    # fantasy_scraper.main(True, fantasy_scraper.TOTAL_JUGADORES)
     logger = logging.getLogger(__name__)
