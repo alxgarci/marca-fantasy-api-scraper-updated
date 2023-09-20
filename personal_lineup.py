@@ -6,8 +6,6 @@ import shutil
 import requests
 from concurrent.futures import ThreadPoolExecutor
 
-import fantasy_scraper
-
 LOG_FILE = "log.txt"
 HEADER_BEARER = ""
 RUTA_LIGAS = "mis_ligas/"
@@ -65,7 +63,7 @@ def main():
 def read_market(league_id):
     url = f"https://api-fantasy.llt-services.com/api/v3/league/{league_id}/market"
     league_market_response = requests.get(url,
-                                          auth=BearerAuth(HEADER_BEARER), timeout=fantasy_scraper.REQUEST_TIMEOUT)
+                                          auth=BearerAuth(HEADER_BEARER), timeout=REQUEST_TIMEOUT)
     league_market_payload = league_market_response.json()
     logging.info(f"Request {url} OK")
     write_json_ligas(league_market_payload, league_id)
@@ -108,7 +106,7 @@ def get_player_team(player_id, league_id):
     url = f"https://api-fantasy.llt-services.com/api/v3/leagues/{league_id}/teams/{player_id}"
     player_team_response = requests.get(
         url,
-        auth=BearerAuth(HEADER_BEARER), timeout=fantasy_scraper.REQUEST_TIMEOUT)
+        auth=BearerAuth(HEADER_BEARER), timeout=REQUEST_TIMEOUT)
     player_team_payload = player_team_response.json()
     logging.info(f"Request {url} OK")
     write_json_player_team(player_team_payload, league_id)
@@ -118,7 +116,7 @@ def read_players(league_id):
     url = f"https://api-fantasy.llt-services.com/api/v4/leagues/{league_id}/ranking?x-lang=es"
     league_players_response = requests.get(
         url,
-        auth=BearerAuth(HEADER_BEARER), timeout=fantasy_scraper.REQUEST_TIMEOUT)
+        auth=BearerAuth(HEADER_BEARER), timeout=REQUEST_TIMEOUT)
     league_players_payload = league_players_response.json()
     logging.info(f"Request {url} OK")
     player_ids = []
