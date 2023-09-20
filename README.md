@@ -1,11 +1,13 @@
 # Marca Fantasy Scraper
 Web scraper del API de LaLiga Fantasy de Marca. Descarga la información existente en la Liga Fantasy Marca sobre los equipos y jugadores de la temporada y sus historiales de valor de mercado.
 Se ha implementado multithreading (tiempo de ejecución de ~25 segundos para 1595 jugadores) y comandos varios para poder modificar la ejecución sin cambiar nada del código en caso de modificaciones o aumento de jugadores en API.
+También se pueden obtener los datos y jugadores de tu propia liga y plantilla.
 
 <!-- MarkdownTOC -->
 
 - [Requisitos](#requisitos)
 - [Ejecucion](#ejecucion)
+- [Ejecucion de personal_lineup.py \(obtener Bearer Header\)](#ejecucion-de-personallineuppy-obtener-bearer-header)
 - [Importado como libreria](#importado-como-libreria)
 - [Funcionamiento](#funcionamiento)
 - [Referencias](#referencias)
@@ -51,6 +53,17 @@ fantasy_scraper.py --help
 <img src="https://github.com/alxgarci/marca-fantasy-api-scraper-updated/raw/master/img/ex01.png"
      alt="Ejemplo comandos"/>
 </div>
+
+# Ejecucion de personal_lineup.py (obtener Bearer Header)
+Para poder entrar en la API de nuestra liga/cuenta, necesitaremos un header que caduca cada 24hr.
+Se puede obtener fácilmente añadiento la siguiente página a marcadores e iniciando sesión en la propia página, lo que nos copiará en el portapapeles el token a pegar en terminal. Arrastrar el siguiente enlace a la barra de marcadores:
+- [Fantasy Token Copy](javascript: (function() {var text = JSON.parse(localStorage.getItem("auth")).status.authenticate.access_token;navigator.clipboard.writeText(text).then(function() {alert('Token copiado correctamente al portapapeles!');}, function(err) {alert('No se ha podido copiar el token: ', err);});})())
+- <a href="javascript: (function() {var text = JSON.parse(localStorage.getItem("auth")).status.authenticate.access_token;navigator.clipboard.writeText(text).then(function() {alert('Token copiado correctamente al portapapeles!');}, function(err) {alert('No se ha podido copiar el token: ', err);});})()">Fantasy Token Copy </a>
+- También se puede pulsar Ctrl + Shift + J en Chrome para abrir la consola web e introducir:
+```
+JSON.parse(localStorage.getItem("auth")).status.authenticate.access_token
+```
+Que nos devolverá el mismo token para pegarlo en terminal cuando se pida
 
 # Importado como libreria
 Se puede importar y usar como librería dentro de otro script:

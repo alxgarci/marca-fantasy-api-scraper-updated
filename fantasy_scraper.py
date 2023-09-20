@@ -8,6 +8,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 import logging
 import numpy as np
+import personal_lineup
 
 import requests
 
@@ -20,6 +21,14 @@ TOTAL_JUGADORES = 1595
 INDEX_INICIO_API = 52
 TEAMS_TO_WRITE = dict()
 REQUEST_TIMEOUT = 30
+
+HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36',
+    'Origin': 'https://fantasy.laliga.com',
+    'Referer': 'https://fantasy.laliga.com/',
+    'X-App': 'Fantasy-web',
+    'X-Lang': 'es'
+}
 
 
 # Configuracion de argumentos por consola para mostrar INFO o PROGRESSBAR
@@ -153,27 +162,30 @@ def format_market_value(player_index, mkt_value_payload):
 
 
 def multithread_scrape_player_aux(player_index):
-    response = requests.get(f"{PLAYERS_ENDPOINT}/{player_index}", timeout=REQUEST_TIMEOUT)
-    if response.status_code == 200:
-        payload = response.json()
-        if payload["playerStatus"] != "out_of_league":
-            try:
-                _ = payload["team"]["id"]
-                market_value_response = requests.get(MARKET_VALUE_ENDPOINT.format(player_index),
-                                                     timeout=REQUEST_TIMEOUT)
-                market_value_payload = market_value_response.json()
+    try:
+        response = requests.get(f"{PLAYERS_ENDPOINT}/{player_index}", timeout=REQUEST_TIMEOUT, headers=HEADERS)
+        if response.status_code == 200:
+            payload = response.json()
+            if payload["playerStatus"] != "out_of_league":
+                try:
+                    _ = payload["team"]["id"]
+                    market_value_response = requests.get(MARKET_VALUE_ENDPOINT.format(player_index),
+                                                         timeout=REQUEST_TIMEOUT, headers=HEADERS)
+                    market_value_payload = market_value_response.json()
 
-                to_player_json(player_index, payload, market_value_payload)
-                to_team_simple_json(player_index, payload)
+                    to_player_json(player_index, payload, market_value_payload)
+                    to_team_simple_json(player_index, payload)
 
-                logger.info(f"Jugador {player_index} almacenado correctamente")
-            except KeyError:
-                # Es un jugador que no esta en 1 DIV, de equipo que ha descendido pero no se ha borrado
-                logger.error(f"Jugador {player_index} [SIN EQUIPO]")
-        else:
-            logger.error(f"Jugador {player_index} [out_of_league]")
-    elif response.status_code == 404:
-        logger.error(f"Jugador {player_index} [NO ENCONTRADO]")
+                    logger.info(f"Jugador {player_index} almacenado correctamente")
+                except KeyError:
+                    # Es un jugador que no esta en 1 DIV, de equipo que ha descendido pero no se ha borrado
+                    logger.error(f"Jugador {player_index} [SIN EQUIPO]")
+            else:
+                logger.error(f"Jugador {player_index} [out_of_league]")
+        elif response.status_code == 404:
+            logger.error(f"Jugador {player_index} [NO ENCONTRADO]")
+    except requests.exceptions.ReadTimeout as to:
+        logging.warning(f"requests.exceptions.ReadTimeout (Tiempo de espera agotado para request {player_index})", exc_info=True)
 
 
 def remove_from_dict(d, key):
@@ -221,7 +233,10 @@ def main(p_bar, total_jugadores):
     except Exception as e:
         logging.critical(e, exc_info=True)
         sys.exit()
-    sys.exit()
+    if str(input("[I] Continuar con la api de usuario (S/N): ").casefold()) == "n":
+        sys.exit()
+    else:
+        personal_lineup.main()
 
 
 if __name__ == '__main__':
