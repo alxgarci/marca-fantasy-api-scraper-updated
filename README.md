@@ -7,7 +7,7 @@ También se pueden obtener los datos y jugadores de tu propia liga y plantilla.
 
 - [Requisitos](#requisitos)
 - [Ejecucion](#ejecucion)
-- [Ejecucion de personal_lineup.py \(obtener Bearer Header\)](#ejecucion-de-personallineuppy-obtener-bearer-header)
+- [Ejecucion de personal_lineup.py \(obtener Bearer Header\)](#ejecucion-obtener-bearer-header)
 - [Importado como libreria](#importado-como-libreria)
 - [Funcionamiento](#funcionamiento)
 - [Referencias](#referencias)
@@ -54,7 +54,7 @@ fantasy_scraper.py --help
      alt="Ejemplo comandos"/>
 </div>
 
-# Ejecucion de personal_lineup.py (obtener Bearer Header)
+# Ejecucion (obtener Bearer Header)
 Para poder entrar en la API de nuestra liga/cuenta, necesitaremos un header que caduca cada 24hr.
 Se puede obtener fácilmente añadiento la siguiente página a marcadores e iniciando sesión en la propia página y luego pulsando en el marcador, lo que nos copiará en el portapapeles el token a pegar en terminal para poder acceder a las API de nuestra liga.
 Crear un nuevo marcador en la barra de marcadores, del nombre que sea y en URL introducimos:
