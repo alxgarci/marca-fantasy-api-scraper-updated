@@ -56,10 +56,12 @@ fantasy_scraper.py --help
 
 # Ejecucion de personal_lineup.py (obtener Bearer Header)
 Para poder entrar en la API de nuestra liga/cuenta, necesitaremos un header que caduca cada 24hr.
-Se puede obtener fácilmente añadiento la siguiente página a marcadores e iniciando sesión en la propia página, lo que nos copiará en el portapapeles el token a pegar en terminal. Arrastrar el siguiente enlace a la barra de marcadores:
-- [Fantasy Token Copy](javascript: (function() {var text = JSON.parse(localStorage.getItem("auth")).status.authenticate.access_token;navigator.clipboard.writeText(text).then(function() {alert('Token copiado correctamente al portapapeles!');}, function(err) {alert('No se ha podido copiar el token: ', err);});})())
-- <a href="javascript: (function() {var text = JSON.parse(localStorage.getItem("auth")).status.authenticate.access_token;navigator.clipboard.writeText(text).then(function() {alert('Token copiado correctamente al portapapeles!');}, function(err) {alert('No se ha podido copiar el token: ', err);});})()">Fantasy Token Copy </a>
-- También se puede pulsar Ctrl + Shift + J en Chrome para abrir la consola web e introducir:
+Se puede obtener fácilmente añadiento la siguiente página a marcadores e iniciando sesión en la propia página y luego pulsando en el marcador, lo que nos copiará en el portapapeles el token a pegar en terminal para poder acceder a las API de nuestra liga.
+Crear un nuevo marcador en la barra de marcadores, del nombre que sea y en URL introducimos:
+```
+(javascript: (function() {var text = JSON.parse(localStorage.getItem("auth")).status.authenticate.access_token;navigator.clipboard.writeText(text).then(function() {alert('Token copiado correctamente al portapapeles!');}, function(err) {alert('No se ha podido copiar el token: ', err);});})())
+```
+- También se puede pulsar Ctrl + Shift + J en Chrome para abrir la consola web (DevTools) e introducir:
 ```
 JSON.parse(localStorage.getItem("auth")).status.authenticate.access_token
 ```
