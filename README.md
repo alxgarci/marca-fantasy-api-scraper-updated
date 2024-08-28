@@ -1,5 +1,5 @@
 # Marca Fantasy Scraper
-Web scraper del API de LaLiga Fantasy de Marca. Descarga la información existente en la Liga Fantasy Marca sobre los equipos y jugadores de la temporada y sus historiales de valor de mercado.
+Web scraper del API de LaLiga Fantasy Oficial (Relevo). Descarga la información existente en la Liga Fantasy Oficial sobre los equipos y jugadores de la temporada y sus historiales de valor de mercado.
 Se ha implementado multithreading (tiempo de ejecución de ~25 segundos para 1595 jugadores) y comandos varios para poder modificar la ejecución sin cambiar nada del código en caso de modificaciones o aumento de jugadores en API.
 También se pueden obtener los datos y jugadores de tu propia liga y plantilla.
 
