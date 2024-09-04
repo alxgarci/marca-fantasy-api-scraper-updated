@@ -1,3 +1,7 @@
+## Actualmente no funciona el código, dado que han cambiado endpoints de la Api (ya no existe acceso web, solo en app)
+Se puede seguir la discusión en la pestaña 'issues' [#7](https://github.com/alxgarci/marca-fantasy-api-scraper-updated/issues/7)
+
+Acepto y reviso pull requests sin problema, para mantener el repositorio actualizado, pero por problemas de tiempo actuales iré investigando en ratos libres
 # Marca Fantasy Scraper
 Web scraper del API de LaLiga Fantasy Oficial (Relevo). Descarga la información existente en la Liga Fantasy Oficial sobre los equipos y jugadores de la temporada y sus historiales de valor de mercado.
 Se ha implementado multithreading (tiempo de ejecución de ~25 segundos para 1595 jugadores) y comandos varios para poder modificar la ejecución sin cambiar nada del código en caso de modificaciones o aumento de jugadores en API.
